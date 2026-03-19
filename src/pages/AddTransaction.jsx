@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { addTransaction } from '../utils/storage';
+import { useTransactions } from '../contexts/TransactionContext';
 import { format } from 'date-fns';
 import { ArrowDownRight, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 
@@ -9,14 +10,16 @@ const CATEGORIES = {
 };
 
 const AddTransaction = ({ onSuccess }) => {
+    const { refreshTransactions } = useTransactions();
     const [type, setType] = useState('expense');
     const [amount, setAmount] = useState('');
-    const [numericAmount, setNumericAmount] = useState(0); // Added missing state
+    const [numericAmount, setNumericAmount] = useState(0);
     const [category, setCategory] = useState(CATEGORIES.expense[0]);
     const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [note, setNote] = useState('');
-    const [customCategory, setCustomCategory] = useState(''); // requested by user in prev conv
+    const [customCategory, setCustomCategory] = useState('');
     const [isSuccess, setIsSuccess] = useState(false);
+    const [validationError, setValidationError] = useState('');
 
     // Switch type and reset category
     const handleTypeChange = (newType) => {
@@ -61,10 +64,23 @@ const AddTransaction = ({ onSuccess }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!numericAmount || numericAmount <= 0 || isSubmitting) return;
+        setValidationError('');
 
+        // Validasi nominal
+        if (!numericAmount || numericAmount <= 0) {
+            setValidationError('Nominal harus lebih dari Rp 0.');
+            return;
+        }
+
+        // Validasi kategori custom
+        if (category === 'Lainnya' && !customCategory.trim()) {
+            setValidationError('Tulis nama kategori terlebih dahulu.');
+            return;
+        }
+
+        if (isSubmitting) return;
         setIsSubmitting(true);
-        const finalCategory = category === 'Lainnya' && customCategory ? customCategory : category;
+        const finalCategory = category === 'Lainnya' && customCategory ? customCategory.trim() : category;
 
         try {
             await addTransaction({
@@ -75,6 +91,9 @@ const AddTransaction = ({ onSuccess }) => {
                 note
             });
 
+            // Refresh shared transaction cache
+            await refreshTransactions();
+
             // Set local success state to show CheckCircle UI
             setIsSuccess(true);
             setTimeout(() => {
@@ -83,7 +102,7 @@ const AddTransaction = ({ onSuccess }) => {
             }, 1500);
         } catch (error) {
             console.error("Failed adding:", error);
-            alert("Gagal menambahkan transaksi. Pastikan internet Anda terhubung.");
+            setValidationError('Gagal menambahkan transaksi. Pastikan internet Anda terhubung.');
         } finally {
             setIsSubmitting(false);
         }
@@ -107,6 +126,13 @@ const AddTransaction = ({ onSuccess }) => {
 
             <div className="glass-card p-6 min-h-[60vh] relative">
                 <form onSubmit={handleSubmit} className="space-y-6">
+
+                    {/* Validation Error Message */}
+                    {validationError && (
+                        <div className="p-3 text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl animate-in fade-in duration-300">
+                            {validationError}
+                        </div>
+                    )}
 
                     {/* Toggle Type */}
                     <div className="flex bg-slate-100/50 p-1.5 rounded-xl">

@@ -12,7 +12,7 @@ const Login = () => {
     const [errorMsg, setErrorMsg] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
 
-    const { signIn, signUp } = useAuth();
+    const { signIn, signUp, sessionExpired } = useAuth();
 
     const handleAuth = async (e) => {
         e.preventDefault();
@@ -83,6 +83,12 @@ const Login = () => {
                     <h2 className="text-xl font-bold text-slate-800 mb-6">
                         {isLogin ? 'Masuk ke Akun' : 'Buat Akun Baru'}
                     </h2>
+
+                    {sessionExpired && (
+                        <div className="p-3 mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl">
+                            ⏱️ Sesi Anda telah berakhir. Silakan login kembali.
+                        </div>
+                    )}
 
                     {errorMsg && (
                         <div className="p-3 mb-4 text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl">

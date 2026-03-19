@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { UserCircle, LogOut, CheckCircle2, ChevronRight, Bell, Moon, Shield, HelpCircle, Settings } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 const Profile = ({ session }) => {
     const [loading, setLoading] = useState(false);
@@ -11,6 +12,15 @@ const Profile = ({ session }) => {
     // Settings States
     const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
     const [isNotifEnabled, setIsNotifEnabled] = useState(true);
+
+    // Apply dark mode class on mount
+    useEffect(() => {
+        if (isDarkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, []);
 
     const toggleDarkMode = () => {
         const newMode = !isDarkMode;
@@ -23,11 +33,11 @@ const Profile = ({ session }) => {
         }
     };
 
-    // Family States
     const [familyInfo, setFamilyInfo] = useState(null);
     const [joinCodeInput, setJoinCodeInput] = useState('');
     const [familyNameInput, setFamilyNameInput] = useState('');
     const [familyLoading, setFamilyLoading] = useState(false);
+    const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
     useEffect(() => {
         if (session?.user) {
@@ -143,6 +153,34 @@ const Profile = ({ session }) => {
         }
     };
 
+    const handleLeaveFamily = async () => {
+        setFamilyLoading(true);
+        try {
+            // Remove family_id from profile
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .update({ family_id: null })
+                .eq('id', session.user.id);
+
+            if (profileError) throw profileError;
+
+            // Remove family_id from user's personal transactions
+            const { error: txError } = await supabase
+                .from('transactions')
+                .update({ family_id: null })
+                .eq('user_id', session.user.id);
+
+            if (txError) console.error('Error clearing family from transactions:', txError);
+
+            setFamilyInfo(null);
+            alert('Anda telah keluar dari grup keluarga.');
+        } catch (error) {
+            alert('Gagal keluar: ' + error.message);
+        } finally {
+            setFamilyLoading(false);
+        }
+    };
+
 
     const handleUpdate = async (e) => {
         e.preventDefault();
@@ -245,6 +283,13 @@ const Profile = ({ session }) => {
                         <p className="text-[10px] text-slate-400 mt-2 text-left w-full leading-tight">
                             *Berikan kode ini kepada pasangan/keluarga Anda agar mereka dapat memantau dan mengisi arus kas yang sama.
                         </p>
+                        <button
+                            onClick={() => setShowLeaveConfirm(true)}
+                            disabled={familyLoading}
+                            className="mt-4 w-full py-2.5 text-sm font-semibold text-rose-500 border border-rose-200 bg-rose-50/50 rounded-xl hover:bg-rose-100 transition-colors disabled:opacity-50"
+                        >
+                            Keluar dari Grup
+                        </button>
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -348,6 +393,17 @@ const Profile = ({ session }) => {
                 <LogOut size={18} />
                 <span>Keluar dari Akun</span>
             </button>
+
+            <ConfirmModal
+                isOpen={showLeaveConfirm}
+                onClose={() => setShowLeaveConfirm(false)}
+                onConfirm={handleLeaveFamily}
+                title="Keluar dari Grup?"
+                message="Anda akan terlepas dari grup keluarga ini. Transaksi Anda akan menjadi data pribadi kembali."
+                confirmText="Keluar"
+                cancelText="Batal"
+                variant="warning"
+            />
         </div>
     );
 };

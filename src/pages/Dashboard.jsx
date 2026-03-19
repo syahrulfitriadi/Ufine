@@ -5,34 +5,19 @@ import { getTransactions } from '../utils/storage';
 import { calculateSummary, getChartData, formatCurrency, formatDate } from '../utils/helpers';
 import { isSameMonth, parseISO } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
+import { useTransactions } from '../contexts/TransactionContext';
+import { DashboardSkeleton } from '../components/SkeletonLoader';
 
 const COLORS = ['#86a788', '#f43f5e', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981', '#ec4899', '#6366f1', '#64748b'];
 
 const Dashboard = () => {
     const { session } = useAuth();
+    const { transactions: rawTransactions, isLoading } = useTransactions();
     const [transactions, setTransactions] = useState([]);
-    const [rawTransactions, setRawTransactions] = useState([]);
     const [summary, setSummary] = useState({ totalBalance: 0, totalIncome: 0, totalExpense: 0 });
     const [chartData, setChartData] = useState({ income: [], expense: [] });
     const [activeSlide, setActiveSlide] = useState(0); // 0 = Pemasukan, 1 = Pengeluaran
     const [userFilter, setUserFilter] = useState('me'); // 'all', 'me', 'partner'
-
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                setIsLoading(true);
-                const rawData = await getTransactions();
-                setRawTransactions(rawData);
-            } catch (error) {
-                console.error("Failed to load transactions", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        loadData();
-    }, [session]);
 
     useEffect(() => {
         const filteredData = rawTransactions.filter(t => {
@@ -204,9 +189,7 @@ const Dashboard = () => {
 
                 <div className="space-y-3">
                     {isLoading ? (
-                        <div className="flex justify-center py-6">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sage-500"></div>
-                        </div>
+                        <DashboardSkeleton />
                     ) : latestTransactions.length > 0 ? (
                         latestTransactions.map((t) => (
                             <div key={t.id} className="glass-card p-4 flex items-center justify-between transition-transform hover:scale-[1.02]">

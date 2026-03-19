@@ -1,50 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { getTransactions, deleteTransaction } from '../utils/storage';
+import { deleteTransaction } from '../utils/storage';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { isSameMonth, parseISO, format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { CalendarDays, Filter, Trash2, ArrowDownRight, ArrowUpRight, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTransactions } from '../contexts/TransactionContext';
+import ConfirmModal from '../components/ConfirmModal';
+import { HistorySkeleton } from '../components/SkeletonLoader';
 
 const History = () => {
     const { session } = useAuth();
-    const [transactions, setTransactions] = useState([]);
+    const { transactions, isLoading, removeTransaction } = useTransactions();
     const [filterType, setFilterType] = useState('all'); // 'all', 'income', 'expense'
     const [userFilter, setUserFilter] = useState('me'); // 'all', 'me', 'partner'
-
-    const [isLoading, setIsLoading] = useState(true);
 
     // Pagination state: map of monthYear -> currentPage
     const [pageConfig, setPageConfig] = useState({});
     const itemsPerPage = 5;
 
-    const fetchTransactions = async () => {
-        try {
-            setIsLoading(true);
-            const data = await getTransactions();
-            setTransactions(data);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsLoading(false);
-        }
+    // Confirm modal state
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState(null);
+
+    const handleDeleteClick = (id) => {
+        setPendingDeleteId(id);
+        setShowConfirm(true);
     };
 
-    useEffect(() => {
-        fetchTransactions();
-    }, []);
-
-    const handleDelete = async (id) => {
-        if (window.confirm('Hapus transaksi ini?')) {
-            const success = await deleteTransaction(id);
-            if (success) {
-                // optimistically remove
-                setTransactions(transactions.filter(t => t.id !== id));
-            } else {
-                alert("Gagal menghapus data.");
-            }
+    const handleDeleteConfirm = async () => {
+        if (!pendingDeleteId) return;
+        const success = await deleteTransaction(pendingDeleteId);
+        if (success) {
+            removeTransaction(pendingDeleteId);
         }
+        setPendingDeleteId(null);
     };
 
     // Compute global running balances on ALL transactions
@@ -121,9 +112,7 @@ const History = () => {
                 {/* List Grouped by Month */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-8 pb-24">
                     {isLoading ? (
-                        <div className="flex justify-center py-10">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sage-500"></div>
-                        </div>
+                        <HistorySkeleton />
                     ) : Object.keys(groupedTransactions).length > 0 ? (
                         Object.keys(groupedTransactions).map((monthYear, idx) => {
                             const monthData = groupedTransactions[monthYear];
@@ -240,7 +229,7 @@ const History = () => {
                                                                 </td>
                                                                 <td className="py-3 px-2 text-right align-top">
                                                                     <button
-                                                                        onClick={() => handleDelete(t.id)}
+                                                                        onClick={() => handleDeleteClick(t.id)}
                                                                         className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
                                                                         title="Hapus Transaksi"
                                                                     >
@@ -302,6 +291,16 @@ const History = () => {
                 </div>
 
             </div>
+
+            <ConfirmModal
+                isOpen={showConfirm}
+                onClose={() => setShowConfirm(false)}
+                onConfirm={handleDeleteConfirm}
+                title="Hapus Transaksi?"
+                message="Transaksi ini akan dihapus permanen dan tidak bisa dikembalikan."
+                confirmText="Hapus"
+                cancelText="Batal"
+            />
         </div>
     );
 };

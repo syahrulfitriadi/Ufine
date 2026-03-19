@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getTransactions } from '../utils/storage';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { isSameWeek, isSameMonth, parseISO, format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -8,30 +7,16 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../contexts/AuthContext';
+import { useTransactions } from '../contexts/TransactionContext';
+import { ReportSkeleton } from '../components/SkeletonLoader';
 
 const Report = () => {
-    const [transactions, setTransactions] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { session } = useAuth();
+    const { transactions, isLoading } = useTransactions();
     const [period, setPeriod] = useState('monthly'); // 'weekly' or 'monthly'
     const [userFilter, setUserFilter] = useState('me'); // 'all', 'me', 'partner'
     const [currentPage, setCurrentPage] = useState(1);
-    const { session } = useAuth();
     const itemsPerPage = 5;
-
-    useEffect(() => {
-        const fetchTransactions = async () => {
-            try {
-                setIsLoading(true);
-                const data = await getTransactions();
-                setTransactions(data);
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchTransactions();
-    }, []);
 
     // Reset pagination when period changes
     useEffect(() => {
@@ -244,9 +229,7 @@ const Report = () => {
                 </div>
 
                 {isLoading ? (
-                    <div className="flex justify-center py-20 flex-1">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sage-500"></div>
-                    </div>
+                    <ReportSkeleton />
                 ) : (
                     <>
                         {/* Visual Summary Overview */}

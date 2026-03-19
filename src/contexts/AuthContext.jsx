@@ -10,6 +10,8 @@ export const AuthProvider = ({ children }) => {
     const [session, setSession] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const [sessionExpired, setSessionExpired] = useState(false);
+
     useEffect(() => {
         // Check active session
         supabase.auth.getSession().then(({ data: { session } }) => {
@@ -18,10 +20,21 @@ export const AuthProvider = ({ children }) => {
             setLoading(false);
         });
 
-        // Listen for changes on auth state (login, logout, etc.)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
-            setUser(session?.user ?? null);
+        // Listen for changes on auth state (login, logout, token refresh, etc.)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'TOKEN_REFRESHED' && !session) {
+                // Token refresh failed — session expired
+                setSessionExpired(true);
+                setSession(null);
+                setUser(null);
+            } else if (event === 'SIGNED_OUT') {
+                setSession(null);
+                setUser(null);
+            } else {
+                setSession(session);
+                setUser(session?.user ?? null);
+                if (session) setSessionExpired(false);
+            }
             setLoading(false);
         });
 
@@ -49,6 +62,7 @@ export const AuthProvider = ({ children }) => {
     const value = {
         session,
         user,
+        sessionExpired,
         signUp,
         signIn,
         signOut,
