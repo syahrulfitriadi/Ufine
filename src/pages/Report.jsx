@@ -284,15 +284,15 @@ const Report = () => {
                         <div className="flex-1 overflow-x-auto pb-6">
                             {targetTransactions.length > 0 ? (
                                 <>
-                                    <table className="w-full text-left text-sm border-collapse">
+                                    <table className="w-full text-left text-sm border-collapse min-w-[550px]">
                                         <thead>
                                             <tr className="border-b-2 border-sage-100 text-slate-500">
                                                 <th className="pb-3 pt-2 font-semibold px-2 w-8">No</th>
-                                                <th className="pb-3 pt-2 font-semibold">Tanggal</th>
-                                                <th className="pb-3 pt-2 font-semibold">Pemasukan</th>
-                                                <th className="pb-3 pt-2 font-semibold">Pengeluaran</th>
+                                                <th className="pb-3 pt-2 font-semibold px-2">Tanggal</th>
+                                                <th className="pb-3 pt-2 font-semibold px-2">Pemasukan</th>
+                                                <th className="pb-3 pt-2 font-semibold px-2">Pengeluaran</th>
                                                 <th className="pb-3 pt-2 font-semibold px-2">Kategori</th>
-                                                <th className="pb-3 pt-2 font-semibold text-right">Saldo</th>
+                                                <th className="pb-3 pt-2 font-semibold px-2 text-right">Saldo</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -303,13 +303,13 @@ const Report = () => {
                                                 return (
                                                     <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                                                         <td className="py-3 px-2 text-slate-400 font-medium align-top">{overallIndex}</td>
-                                                        <td className="py-3 text-slate-600 align-top whitespace-nowrap">
+                                                        <td className="py-3 px-2 text-slate-600 align-top whitespace-nowrap">
                                                             {formatDate(t.date, 'dd/MM')}
                                                         </td>
-                                                        <td className="py-3 text-sage-600 font-medium align-top whitespace-nowrap">
+                                                        <td className="py-3 px-2 text-sage-600 font-medium align-top whitespace-nowrap">
                                                             {t.type === 'income' ? formatCurrency(t.amount) : '-'}
                                                         </td>
-                                                        <td className="py-3 text-rose-500 font-medium align-top whitespace-nowrap">
+                                                        <td className="py-3 px-2 text-rose-500 font-medium align-top whitespace-nowrap">
                                                             {t.type === 'expense' ? formatCurrency(t.amount) : '-'}
                                                         </td>
                                                         <td className="py-3 px-2 text-slate-700 font-medium align-top whitespace-nowrap">
