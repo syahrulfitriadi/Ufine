@@ -1,4 +1,3 @@
-📱 Tentang Aplikasi
 Aplikasi Keuangan ini adalah platform pencatatan dan pelacakan finansial modern yang dirancang untuk membantu pengguna mengelola arus kas (pemasukan dan pengeluaran) secara efisien. Aplikasi ini tidak hanya ditujukan untuk pengguna individu, tetapi juga memiliki kapabilitas **Family Group (Grup Keluarga)** yang memungkinkan anggota keluarga memantau dan berbagi laporan keuangan bersama dalam satu lingkup yang aman.
 Aplikasi ini dibangun menggunakan teknologi web modern (seperti React/Vite, Tailwind CSS, dan Supabase sebagai backend-nya) yang dirancang untuk berjalan cepat, responsif di berbagai perangkat (Mobile/Desktop), dan mengusung desain yang premium serta memanjakan mata.
 ✨ Fitur Utama
