@@ -74,8 +74,8 @@
 .dark .text-slate-800 { color: #e2e8f0; }
 .dark .text-slate-700 { color: #cbd5e1; }
 .dark .text-slate-600 { color: #94a3b8; }
-.dark .text-slate-500 { color: #64748b; }
-.dark .text-slate-400 { color: #94a3b8; }
+.dark .text-slate-500 { color: #94a3b8; }
+.dark .text-slate-400 { color: #cbd5e1; }
 
 /* Background overrides */
 .dark .bg-white { background-color: #1e293b; }
@@ -83,6 +83,7 @@
 .dark .bg-white\/80 { background-color: rgba(30, 41, 59, 0.85); }
 .dark .bg-white\/90 { background-color: rgba(15, 23, 42, 0.95); }
 .dark .bg-slate-50 { background-color: #1e293b; }
+.dark .bg-slate-50\/50 { background-color: rgba(30, 41, 59, 0.5); }
 .dark .bg-slate-100 { background-color: #334155; }
 .dark .bg-slate-100\/50 { background-color: rgba(51, 65, 85, 0.5); }
 
@@ -108,9 +109,97 @@
 
 /* Hover states */
 .dark .hover\:bg-slate-50:hover { background-color: rgba(51, 65, 85, 0.5); }
+.dark .hover\:bg-slate-50\/50:hover { background-color: rgba(51, 65, 85, 0.4); }
 .dark .hover\:bg-slate-100:hover { background-color: rgba(71, 85, 105, 0.5); }
+
+/* Custom light backgrounds in dark mode */
+.dark .bg-sage-50\/70 { background-color: rgba(30, 41, 59, 0.6) !important; border-color: rgba(134, 167, 136, 0.3) !important; }
+.dark .bg-rose-50\/70 { background-color: rgba(30, 41, 59, 0.6) !important; border-color: rgba(244, 63, 94, 0.3) !important; }
+.dark .bg-sage-200, .dark .bg-sage-100 { background-color: rgba(134, 167, 136, 0.2) !important; }
+.dark .bg-rose-200, .dark .bg-rose-50 { background-color: rgba(244, 63, 94, 0.2) !important; }
 
 /* Top gradient header */
 .dark .from-mint-400 { --tw-gradient-from: #296e52; }
 .dark .to-sage-500 { --tw-gradient-to: #364738; }
 
+
+/* ===== Dark Mode Custom Components Overrides ===== */
+
+/* Recharts dark mode */
+.dark .recharts-cartesian-grid line {
+  stroke: rgba(51, 65, 85, 0.3) !important;
+}
+
+.dark .recharts-text {
+  fill: #94a3b8 !important;
+}
+
+/* Tooltip dark mode (for parts not handled via content prop) */
+.dark .recharts-default-tooltip {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 12px !important;
+}
+
+.dark .recharts-tooltip-item {
+  color: #e2e8f0 !important;
+}
+
+/* Shadow box overrides */
+.dark .shadow-sm { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }
+.dark .shadow-glass { box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2); }
+
+/* Scrollbar styling */
+.dark ::-webkit-scrollbar { width: 4px; }
+.dark ::-webkit-scrollbar-track { background: transparent; }
+.dark ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+/* Nominal input box in dark mode */
+.dark .nominal-box {
+  background: rgba(22, 33, 52, 0.6) !important;
+  border-color: rgba(71, 85, 105, 0.5) !important;
+}
+
+/* Ensure the input inside nominal box doesn't have the ugly dark background */
+.dark .nominal-box input {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #f1f5f9 !important;
+}
+
+/* Browser default icons visibility in dark mode */
+.dark .date-input,
+.dark input[type="date"],
+.dark input[type="password"] {
+  color-scheme: dark;
+}
+
+.dark input[type="password"]::-ms-reveal, input[type="password"]::-ms-reveal {
+  display: none !important;
+}
+
+/* Password reveal icon in edge/chrome */
+.dark input[type="password"]::-webkit-credentials-auto-fill-button {
+  filter: invert(0.8);
+}
+
+/* Category pills dark mode */
+.dark .bg-slate-100 {
+  background-color: #1e2d46;
+}
+
+/* Report/Dashboard card text — brighter in dark mode */
+.dark .text-sage-700 { color: #86a788; }
+.dark .text-sage-600 { color: #9dbd9f; }
+.dark .text-rose-600 { color: #fb7185; }
+.dark .text-rose-500 { color: #f43f5e; }
+
+/* Left border accent cards */
+.dark .border-l-sage-400 { border-left-color: #86a788 !important; }
+.dark .border-l-rose-400 { border-left-color: #f43f5e !important; }
+
+/* Border color overrides for input boxes */
+.dark .border-sage-200 { border-color: rgba(134, 167, 136, 0.3) !important; }
+.dark .border-rose-200 { border-color: rgba(244, 63, 94, 0.3) !important; }

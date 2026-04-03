@@ -142,7 +142,7 @@ const Dashboard = () => {
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} angle={-45} textAnchor="end" height={50} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={(val) => `Rp${new Intl.NumberFormat('id-ID', { notation: 'compact', compactDisplay: 'short' }).format(val)}`} />
-                                    <Tooltip cursor={{ fill: 'transparent' }} formatter={(value) => [new Intl.NumberFormat('id-ID').format(value), '']} labelStyle={{ display: 'none' }} contentStyle={{ borderRadius: '12px', fontSize: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
+                                    <Tooltip cursor={{ fill: 'transparent' }} separator="" formatter={(value) => [`Rp ${new Intl.NumberFormat('id-ID').format(value)}`, '']} labelStyle={{ display: 'none' }} contentStyle={{ borderRadius: '12px', fontSize: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
                                     <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={50}>
                                         {chartData.income.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -165,7 +165,7 @@ const Dashboard = () => {
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} angle={-45} textAnchor="end" height={50} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={(val) => `Rp${new Intl.NumberFormat('id-ID', { notation: 'compact', compactDisplay: 'short' }).format(val)}`} />
-                                    <Tooltip cursor={{ fill: 'transparent' }} formatter={(value) => [new Intl.NumberFormat('id-ID').format(value), '']} labelStyle={{ display: 'none' }} contentStyle={{ borderRadius: '12px', fontSize: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
+                                    <Tooltip cursor={{ fill: 'transparent' }} separator="" formatter={(value) => [`Rp ${new Intl.NumberFormat('id-ID').format(value)}`, '']} labelStyle={{ display: 'none' }} contentStyle={{ borderRadius: '12px', fontSize: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
                                     <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={50}>
                                         {chartData.expense.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[(index + 4) % COLORS.length]} />

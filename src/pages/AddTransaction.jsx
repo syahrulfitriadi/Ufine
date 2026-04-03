@@ -157,7 +157,7 @@ const AddTransaction = ({ onSuccess }) => {
                     </div>
 
                     {/* Amount Box */}
-                    <div className={`p-4 rounded-xl border-2 transition-colors duration-300 ${type === 'income' ? 'bg-sage-50/50 border-sage-200 focus-within:border-sage-400' : 'bg-rose-50/50 border-rose-200 focus-within:border-rose-400'
+                    <div className={`nominal-box p-4 rounded-xl border-2 transition-colors duration-300 ${type === 'income' ? 'bg-sage-50/50 border-sage-200 focus-within:border-sage-400' : 'bg-rose-50/50 border-rose-200 focus-within:border-rose-400'
                         }`}>
                         <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">
                             Nominal
@@ -221,7 +221,8 @@ const AddTransaction = ({ onSuccess }) => {
                             required
                             value={date}
                             onChange={(e) => setDate(e.target.value)}
-                            className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-sage-400 focus:ring-1 focus:ring-sage-400 transition-all text-sm text-slate-700"
+                            onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                            className="date-input w-full p-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-sage-400 focus:ring-1 focus:ring-sage-400 transition-all text-sm text-slate-700"
                         />
                     </div>
 
