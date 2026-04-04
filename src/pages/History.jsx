@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { deleteTransaction } from '../utils/storage';
 import { formatCurrency, formatDate } from '../utils/helpers';
-import { isSameMonth, parseISO, format } from 'date-fns';
+import { isSameMonth, parseISO, format, getYear, getMonth } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { CalendarDays, Filter, Trash2, ArrowDownRight, ArrowUpRight, List, ChevronLeft, ChevronRight } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { CalendarDays, Download, Trash2, ArrowDownRight, ArrowUpRight, List, ChevronLeft, ChevronRight, X, FileSpreadsheet, FileText, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTransactions } from '../contexts/TransactionContext';
 import ConfirmModal from '../components/ConfirmModal';
@@ -23,6 +25,7 @@ const History = () => {
     // Confirm modal state
     const [showConfirm, setShowConfirm] = useState(false);
     const [pendingDeleteId, setPendingDeleteId] = useState(null);
+    const [showDownloadModal, setShowDownloadModal] = useState(false);
 
     const handleDeleteClick = (id) => {
         setPendingDeleteId(id);
@@ -71,7 +74,215 @@ const History = () => {
         return acc;
     }, {});
 
-    const COLORS = ['#86a788', '#f43f5e']; // Income, Expense
+    // Compute available years and months from filtered data
+    const availableYears = useMemo(() => {
+        const years = new Set();
+        filteredTransactions.forEach(t => years.add(getYear(parseISO(t.date))));
+        return [...years].sort((a, b) => b - a); // newest first
+    }, [filteredTransactions]);
+
+    const now = new Date();
+    const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState(now.getMonth()); // 0-indexed
+
+    const MONTH_NAMES = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    const availableMonths = useMemo(() => {
+        const months = new Set();
+        filteredTransactions.forEach(t => {
+            const d = parseISO(t.date);
+            if (getYear(d) === selectedYear) {
+                months.add(getMonth(d));
+            }
+        });
+        return [...months].sort((a, b) => b - a); // newest first
+    }, [filteredTransactions, selectedYear]);
+
+    // Auto-select latest month when year changes
+    useEffect(() => {
+        if (availableMonths.length > 0 && !availableMonths.includes(selectedMonth)) {
+            setSelectedMonth(availableMonths[0]);
+        }
+    }, [availableMonths, selectedYear]);
+
+    // Get the selected month key (e.g., "April 2026")
+    const selectedMonthKey = `${MONTH_NAMES[selectedMonth]} ${selectedYear}`;
+    // Match with locale-formatted key from groupedTransactions
+    const selectedMonthKeyLocale = Object.keys(groupedTransactions).find(k => {
+        // format is "April 2026" in Indonesian locale - capitalize first letter for comparison
+        return k.toLowerCase() === selectedMonthKey.toLowerCase();
+    });
+    const selectedData = selectedMonthKeyLocale ? groupedTransactions[selectedMonthKeyLocale] : [];
+
+    const COLORS = ['#86a788', '#f43f5e', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981', '#ec4899', '#6366f1', '#64748b'];
+
+    // --- Export Functions ---
+    const generateSheetData = (monthTransactions) => {
+        const sorted = [...monthTransactions].sort((a, b) => {
+            const dateDiff = new Date(a.date) - new Date(b.date);
+            if (dateDiff !== 0) return dateDiff;
+            // Same date: income first, then expense
+            if (a.type === 'income' && b.type === 'expense') return -1;
+            if (a.type === 'expense' && b.type === 'income') return 1;
+            return 0;
+        });
+        let balance = 0;
+        return sorted.map((t, i) => {
+            balance += t.type === 'income' ? Number(t.amount) : -Number(t.amount);
+            return {
+                No: i + 1,
+                Tanggal: formatDate(t.date, 'dd/MM/yyyy'),
+                Oleh: t.creator_name || '-',
+                Kategori: t.category,
+                Keterangan: t.note || '-',
+                Pemasukan: t.type === 'income' ? Number(t.amount) : '',
+                Pengeluaran: t.type === 'expense' ? Number(t.amount) : '',
+                Saldo: balance
+            };
+        });
+    };
+
+    const handleDownloadMonth = () => {
+        if (!selectedData || selectedData.length === 0) return;
+
+        const sheetData = generateSheetData(selectedData);
+        const monthIncome = selectedData.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+        const monthExpense = selectedData.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+
+        sheetData.push({ No: '', Tanggal: '', Oleh: '', Kategori: 'TOTAL', Keterangan: '', Pemasukan: monthIncome, Pengeluaran: monthExpense, Saldo: monthIncome - monthExpense });
+
+        const ws = XLSX.utils.json_to_sheet(sheetData);
+        ws['!cols'] = [{ wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 18 }, { wch: 18 }, { wch: 20 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, `${MONTH_NAMES[selectedMonth]} ${selectedYear}`);
+        XLSX.writeFile(wb, `Riwayat_${MONTH_NAMES[selectedMonth]}_${selectedYear}.xlsx`);
+        setShowDownloadModal(false);
+    };
+
+    const handleDownloadYear = () => {
+        const wb = XLSX.utils.book_new();
+        let hasData = false;
+
+        // Loop through all 12 months (Jan=0 to Dec=11)
+        for (let m = 0; m < 12; m++) {
+            const monthKey = `${MONTH_NAMES[m]} ${selectedYear}`;
+            const localeKey = Object.keys(groupedTransactions).find(k => k.toLowerCase() === monthKey.toLowerCase());
+            if (!localeKey) continue;
+
+            const monthTx = groupedTransactions[localeKey];
+            if (!monthTx || monthTx.length === 0) continue;
+
+            hasData = true;
+            const sheetData = generateSheetData(monthTx);
+            const monthIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+            const monthExpense = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+
+            sheetData.push({ No: '', Tanggal: '', Oleh: '', Kategori: 'TOTAL', Keterangan: '', Pemasukan: monthIncome, Pengeluaran: monthExpense, Saldo: monthIncome - monthExpense });
+
+            const ws = XLSX.utils.json_to_sheet(sheetData);
+            ws['!cols'] = [{ wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 18 }, { wch: 18 }, { wch: 20 }];
+            XLSX.utils.book_append_sheet(wb, ws, MONTH_NAMES[m]);
+        }
+
+        if (hasData) {
+            XLSX.writeFile(wb, `Riwayat_Tahun_${selectedYear}.xlsx`);
+        }
+        setShowDownloadModal(false);
+    };
+
+    // --- PDF Export Functions ---
+    const generatePdfTable = (doc, monthTx, title, startY) => {
+        const sorted = [...monthTx].sort((a, b) => {
+            const dateDiff = new Date(a.date) - new Date(b.date);
+            if (dateDiff !== 0) return dateDiff;
+            if (a.type === 'income' && b.type === 'expense') return -1;
+            if (a.type === 'expense' && b.type === 'income') return 1;
+            return 0;
+        });
+        let balance = 0;
+        const monthIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+        const monthExpense = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+
+        doc.setFontSize(14);
+        doc.text(title, 14, startY);
+        doc.setFontSize(9);
+        doc.text(`Pemasukan: ${formatCurrency(monthIncome)}  |  Pengeluaran: ${formatCurrency(monthExpense)}  |  Saldo: ${formatCurrency(monthIncome - monthExpense)}`, 14, startY + 7);
+
+        const tableRows = sorted.map((t, i) => {
+            balance += t.type === 'income' ? Number(t.amount) : -Number(t.amount);
+            return [
+                i + 1,
+                formatDate(t.date, 'dd/MM/yyyy'),
+                t.creator_name || '-',
+                t.category,
+                t.note || '-',
+                t.type === 'income' ? formatCurrency(t.amount) : '-',
+                t.type === 'expense' ? formatCurrency(t.amount) : '-',
+                formatCurrency(balance)
+            ];
+        });
+
+        autoTable(doc, {
+            head: [['No', 'Tanggal', 'Oleh', 'Kategori', 'Ket.', 'Pemasukan', 'Pengeluaran', 'Saldo']],
+            body: tableRows,
+            startY: startY + 11,
+            theme: 'striped',
+            headStyles: { fillColor: [134, 167, 136], fontSize: 8 },
+            bodyStyles: { fontSize: 7 },
+            columnStyles: { 0: { cellWidth: 8 }, 4: { cellWidth: 25 } },
+        });
+
+        return doc.lastAutoTable.finalY;
+    };
+
+    const handleDownloadMonthPDF = () => {
+        if (!selectedData || selectedData.length === 0) return;
+
+        const doc = new jsPDF();
+        const title = `Riwayat Keuangan — ${MONTH_NAMES[selectedMonth]} ${selectedYear}`;
+        generatePdfTable(doc, selectedData, title, 20);
+        doc.save(`Riwayat_${MONTH_NAMES[selectedMonth]}_${selectedYear}.pdf`);
+        setShowDownloadModal(false);
+    };
+
+    const handleDownloadYearPDF = () => {
+        const doc = new jsPDF();
+        let currentY = 15;
+        let hasData = false;
+        let isFirstPage = true;
+
+        doc.setFontSize(16);
+        doc.text(`Riwayat Keuangan Tahun ${selectedYear}`, 14, currentY);
+        currentY += 12;
+
+        for (let m = 0; m < 12; m++) {
+            const monthKey = `${MONTH_NAMES[m]} ${selectedYear}`;
+            const localeKey = Object.keys(groupedTransactions).find(k => k.toLowerCase() === monthKey.toLowerCase());
+            if (!localeKey) continue;
+
+            const monthTx = groupedTransactions[localeKey];
+            if (!monthTx || monthTx.length === 0) continue;
+
+            hasData = true;
+
+            // Add new page for each month after the first
+            if (!isFirstPage) {
+                doc.addPage();
+                currentY = 15;
+            }
+            isFirstPage = false;
+
+            generatePdfTable(doc, monthTx, MONTH_NAMES[m] + ' ' + selectedYear, currentY);
+        }
+
+        if (hasData) {
+            doc.save(`Riwayat_Tahun_${selectedYear}.pdf`);
+        }
+        setShowDownloadModal(false);
+    };
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -79,57 +290,94 @@ const History = () => {
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-white">Riwayat Transaksi</h1>
-                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-md cursor-pointer hover:bg-white/30 transition-colors">
-                    <Filter size={20} className="text-white" />
-                </div>
+                <button
+                    onClick={() => setShowDownloadModal(true)}
+                    className="p-2 bg-white/20 rounded-lg backdrop-blur-md cursor-pointer hover:bg-white/30 transition-colors"
+                    title="Download Riwayat"
+                >
+                    <Download size={20} className="text-white" />
+                </button>
             </div>
 
             <div className="glass-card min-h-[60vh] overflow-hidden flex flex-col">
 
                 {/* Filters */}
-                <div className="flex flex-col sm:flex-row gap-2 border-b border-slate-100 p-2 bg-slate-50/30">
-                    <select
-                        value={filterType}
-                        onChange={(e) => setFilterType(e.target.value)}
-                        className="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 outline-none focus:border-sage-400"
-                    >
-                        <option value="all">📝 Semua Tipe</option>
-                        <option value="income">↘️ Pemasukan</option>
-                        <option value="expense">↗️ Pengeluaran</option>
-                    </select>
+                <div className="flex flex-col gap-2 border-b border-slate-100 p-2 bg-slate-50/30">
+                    <div className="flex gap-2">
+                        <select
+                            value={filterType}
+                            onChange={(e) => setFilterType(e.target.value)}
+                            className="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 outline-none focus:border-sage-400"
+                        >
+                            <option value="all">📝 Semua Tipe</option>
+                            <option value="income">↘️ Pemasukan</option>
+                            <option value="expense">↗️ Pengeluaran</option>
+                        </select>
 
-                    <select
-                        value={userFilter}
-                        onChange={(e) => setUserFilter(e.target.value)}
-                        className="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 outline-none focus:border-sage-400"
-                    >
-                        <option value="all">💳 Semua Data</option>
-                        <option value="me">👤 Data Saya</option>
-                        <option value="partner">👥 Data Pasangan</option>
-                    </select>
+                        <select
+                            value={userFilter}
+                            onChange={(e) => setUserFilter(e.target.value)}
+                            className="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 outline-none focus:border-sage-400"
+                        >
+                            <option value="all">💳 Semua Data</option>
+                            <option value="me">👤 Data Saya</option>
+                            <option value="partner">👥 Data Pasangan</option>
+                        </select>
+                    </div>
+                    <div className="flex gap-2">
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(Number(e.target.value))}
+                            className="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 outline-none focus:border-sage-400"
+                        >
+                            {availableYears.length > 0 ? availableYears.map(y => (
+                                <option key={y} value={y}>📅 {y}</option>
+                            )) : (
+                                <option value={now.getFullYear()}>📅 {now.getFullYear()}</option>
+                            )}
+                        </select>
+                        <select
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                            className="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 outline-none focus:border-sage-400"
+                        >
+                            {availableMonths.length > 0 ? availableMonths.map(m => (
+                                <option key={m} value={m}>📆 {MONTH_NAMES[m]}</option>
+                            )) : (
+                                <option value={now.getMonth()}>📆 {MONTH_NAMES[now.getMonth()]}</option>
+                            )}
+                        </select>
+                    </div>
                 </div>
 
                 {/* List Grouped by Month */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-8 pb-24">
                     {isLoading ? (
                         <HistorySkeleton />
-                    ) : Object.keys(groupedTransactions).length > 0 ? (
-                        Object.keys(groupedTransactions).map((monthYear, idx) => {
-                            const monthData = groupedTransactions[monthYear];
+                    ) : selectedData.length > 0 ? (
+                        (() => {
+                            const monthData = selectedData;
+                            const monthYear = selectedMonthKeyLocale;
 
-                            // Calculate Month Totals for Chart
+                            // Calculate Month Totals
                             const monthIncome = monthData.filter(t => t.type === 'income').reduce((acc, curr) => acc + Number(curr.amount), 0);
                             const monthExpense = monthData.filter(t => t.type === 'expense').reduce((acc, curr) => acc + Number(curr.amount), 0);
-                            const chartData = [
-                                { name: 'Pemasukan', value: monthIncome },
-                                { name: 'Pengeluaran', value: monthExpense }
-                            ].filter(d => d.value > 0); // Hide empty slices
+                            
+                            // Group by category for Chart
+                            const categoryMap = {};
+                            monthData.forEach(t => {
+                                if (!categoryMap[t.category]) {
+                                    categoryMap[t.category] = { name: t.category, value: 0, type: t.type };
+                                }
+                                categoryMap[t.category].value += Number(t.amount);
+                            });
+                            const chartData = Object.values(categoryMap).sort((a,b) => b.value - a.value);
 
-                            // Use the pre-calculated global running balances
                             const transactionsWithBalance = monthData;
+                            const currentPage = pageConfig[monthYear] || 0;
 
                             return (
-                                <div key={idx} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
+                                <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
                                     <div className="flex items-center justify-between mb-4 border-b border-slate-50 pb-3">
                                         <div className="flex items-center space-x-2 text-sage-700">
                                             <CalendarDays size={20} />
@@ -137,51 +385,66 @@ const History = () => {
                                         </div>
                                     </div>
 
-                                    {/* Monthly Summary & Chart */}
-                                    <div className="flex flex-col lg:flex-row items-center gap-6 mb-6 bg-slate-50/50 rounded-2xl p-4">
-                                        {chartData.length > 0 && (
-                                            <div className="w-24 h-24 lg:w-32 lg:h-32 flex-shrink-0">
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <PieChart>
-                                                        <Pie
-                                                            data={chartData}
-                                                            cx="50%"
-                                                            cy="50%"
-                                                            innerRadius={30}
-                                                            outerRadius={45}
-                                                            paddingAngle={2}
-                                                            dataKey="value"
-                                                            stroke="none"
-                                                        >
-                                                            {chartData.map((entry, index) => (
-                                                                <Cell key={`cell-${index}`} fill={entry.name === 'Pemasukan' ? COLORS[0] : COLORS[1]} />
-                                                            ))}
-                                                        </Pie>
-                                                        <Tooltip formatter={(value) => formatCurrency(value)} />
-                                                    </PieChart>
-                                                </ResponsiveContainer>
+                                    {/* Monthly Summary & Category Breakdown */}
+                                    <div className="mb-6 rounded-2xl overflow-hidden">
+                                        {/* Summary Row */}
+                                        <div className="flex items-stretch gap-2 mb-5">
+                                            <div className="flex-1 bg-sage-50 dark:bg-sage-900/20 rounded-xl p-3 border border-sage-100 dark:border-sage-800/30">
+                                                <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Masuk</p>
+                                                <p className="text-xs font-bold text-sage-600 dark:text-sage-400 mt-1 truncate">{formatCurrency(monthIncome)}</p>
                                             </div>
-                                        )}
-                                        <div className="flex-1 w-full flex flex-col gap-3 text-left">
-                                            <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center">
-                                                <p className="text-[10px] md:text-xs text-slate-500 font-medium mb-1">Pemasukan</p>
-                                                <p className="text-sm md:text-base font-bold text-sage-600 border-l-2 border-sage-500 pl-2">
-                                                    {formatCurrency(monthIncome)}
-                                                </p>
+                                            <div className="flex-1 bg-rose-50 dark:bg-rose-900/20 rounded-xl p-3 border border-rose-100 dark:border-rose-800/30">
+                                                <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Keluar</p>
+                                                <p className="text-xs font-bold text-rose-500 dark:text-rose-400 mt-1 truncate">{formatCurrency(monthExpense)}</p>
                                             </div>
-                                            <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-center">
-                                                <p className="text-[10px] md:text-xs text-slate-500 font-medium mb-1">Pengeluaran</p>
-                                                <p className="text-sm md:text-base font-bold text-rose-500 border-l-2 border-rose-400 pl-2">
-                                                    {formatCurrency(monthExpense)}
-                                                </p>
-                                            </div>
-                                            <div className="pt-2 border-t border-slate-100 mt-2">
-                                                <p className="text-[10px] md:text-xs text-slate-500 font-medium mb-1">Sisa Saldo Bulan Ini</p>
-                                                <p className="font-bold flex items-center bg-slate-800 text-white rounded-lg px-4 py-2 text-sm md:text-base w-fit shadow-sm">
-                                                    {formatCurrency(monthIncome - monthExpense)}
-                                                </p>
+                                            <div className="flex-1 bg-slate-800 dark:bg-slate-700 rounded-xl p-3">
+                                                <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider">Saldo</p>
+                                                <p className="text-xs font-bold text-white mt-1 truncate">{formatCurrency(monthIncome - monthExpense)}</p>
                                             </div>
                                         </div>
+
+                                        {/* Stacked Bar */}
+                                        {chartData.length > 0 && (
+                                            <div className="mb-4">
+                                                <div className="flex w-full h-3 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+                                                    {chartData.map((entry, index) => {
+                                                        const total = chartData.reduce((sum, e) => sum + e.value, 0);
+                                                        const pct = total > 0 ? (entry.value / total) * 100 : 0;
+                                                        return (
+                                                            <div
+                                                                key={index}
+                                                                className="h-full transition-all duration-500"
+                                                                style={{
+                                                                    width: `${pct}%`,
+                                                                    backgroundColor: COLORS[index % COLORS.length],
+                                                                    minWidth: pct > 0 ? '4px' : '0'
+                                                                }}
+                                                            />
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Category Breakdown List */}
+                                        {chartData.length > 0 && (
+                                            <div className="space-y-2">
+                                                {chartData.map((entry, index) => {
+                                                    const total = chartData.reduce((sum, e) => sum + e.value, 0);
+                                                    const pct = total > 0 ? ((entry.value / total) * 100).toFixed(0) : 0;
+                                                    return (
+                                                        <div key={index} className="flex items-center gap-3 py-1.5 px-1">
+                                                            <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                                                            <span className="text-xs text-slate-700 dark:text-slate-300 font-medium flex-1 truncate">{entry.name}</span>
+                                                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium w-8 text-right">{pct}%</span>
+                                                            <span className={`text-xs font-bold w-24 text-right ${entry.type === 'income' ? 'text-sage-600 dark:text-sage-400' : 'text-rose-500 dark:text-rose-400'}`}>
+                                                                {formatCurrency(entry.value)}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Monthly Table Details */}
@@ -201,8 +464,8 @@ const History = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {transactionsWithBalance.slice((pageConfig[monthYear] || 0) * itemsPerPage, ((pageConfig[monthYear] || 0) + 1) * itemsPerPage).map((t, tIdx) => {
-                                                        const overallIndex = (pageConfig[monthYear] || 0) * itemsPerPage + tIdx + 1;
+                                                    {transactionsWithBalance.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage).map((t, tIdx) => {
+                                                        const overallIndex = currentPage * itemsPerPage + tIdx + 1;
                                                         return (
                                                             <tr key={t.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
                                                                 <td className="py-3 px-2 text-slate-400 font-medium align-top">{overallIndex}</td>
@@ -252,32 +515,29 @@ const History = () => {
                                         </div>
                                     </div>
 
-                                    {/* Pagination Controls for this Month */}
+                                    {/* Pagination Controls */}
                                     {transactionsWithBalance.length > itemsPerPage && (
                                         <div className="flex justify-center items-center space-x-2 mt-4">
                                             <button
                                                 onClick={() => setPageConfig(prev => ({ ...prev, [monthYear]: Math.max(0, (prev[monthYear] || 0) - 1) }))}
-                                                disabled={(pageConfig[monthYear] || 0) === 0}
+                                                disabled={currentPage === 0}
                                                 className="p-1 rounded bg-slate-50 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 transition-colors"
                                             >
                                                 <ChevronLeft size={16} />
                                             </button>
 
-                                            {Array.from({ length: Math.ceil(transactionsWithBalance.length / itemsPerPage) }).map((_, idx) => {
-                                                const currentMonthlyPage = pageConfig[monthYear] || 0;
-                                                return (
-                                                    <button
-                                                        key={idx}
-                                                        onClick={() => setPageConfig(prev => ({ ...prev, [monthYear]: idx }))}
-                                                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-semibold transition-all ${currentMonthlyPage === idx ? 'bg-sage-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-sage-50 border border-slate-200'}`}
-                                                    >
-                                                        {idx + 1}
-                                                    </button>
-                                                )
-                                            })}
+                                            {Array.from({ length: Math.ceil(transactionsWithBalance.length / itemsPerPage) }).map((_, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => setPageConfig(prev => ({ ...prev, [monthYear]: idx }))}
+                                                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-semibold transition-all ${currentPage === idx ? 'bg-sage-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-sage-50 border border-slate-200'}`}
+                                                >
+                                                    {idx + 1}
+                                                </button>
+                                            ))}
                                             <button
                                                 onClick={() => setPageConfig(prev => ({ ...prev, [monthYear]: Math.min(Math.ceil(transactionsWithBalance.length / itemsPerPage) - 1, (prev[monthYear] || 0) + 1) }))}
-                                                disabled={(pageConfig[monthYear] || 0) >= Math.ceil(transactionsWithBalance.length / itemsPerPage) - 1}
+                                                disabled={currentPage >= Math.ceil(transactionsWithBalance.length / itemsPerPage) - 1}
                                                 className="p-1 rounded bg-slate-50 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 transition-colors"
                                             >
                                                 <ChevronRight size={16} />
@@ -287,13 +547,13 @@ const History = () => {
 
                                 </div>
                             );
-                        })
+                        })()
                     ) : (
                         <div className="flex flex-col items-center justify-center h-48 text-slate-400 text-sm">
                             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-3">
-                                <Filter size={24} className="text-slate-300" />
+                                <CalendarDays size={24} className="text-slate-300" />
                             </div>
-                            <p>Tidak ada transaksi ditemukan.</p>
+                            <p>Tidak ada transaksi di bulan ini.</p>
                         </div>
                     )}
                 </div>
@@ -309,6 +569,84 @@ const History = () => {
                 confirmText="Hapus"
                 cancelText="Batal"
             />
+
+            {/* Download Modal */}
+            {showDownloadModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4" onClick={() => setShowDownloadModal(false)}>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Download Riwayat</h3>
+                            <button onClick={() => setShowDownloadModal(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                                <X size={18} className="text-slate-400" />
+                            </button>
+                        </div>
+                        <div className="p-4 space-y-2">
+                            {/* Section: Per Bulan */}
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">📆 {MONTH_NAMES[selectedMonth]} {selectedYear}</p>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleDownloadMonth}
+                                    disabled={!selectedData || selectedData.length === 0}
+                                    className="flex-1 flex items-center gap-3 p-3 bg-sage-50 dark:bg-sage-900/20 border border-sage-200 dark:border-sage-800/40 rounded-xl hover:bg-sage-100 dark:hover:bg-sage-900/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    <div className="w-9 h-9 bg-sage-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <FileSpreadsheet size={16} className="text-white" />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-xs font-bold text-slate-800 dark:text-white">Excel</p>
+                                        <p className="text-[10px] text-slate-400">.xlsx</p>
+                                    </div>
+                                </button>
+                                <button
+                                    onClick={handleDownloadMonthPDF}
+                                    disabled={!selectedData || selectedData.length === 0}
+                                    className="flex-1 flex items-center gap-3 p-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/40 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    <div className="w-9 h-9 bg-rose-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <FileText size={16} className="text-white" />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-xs font-bold text-slate-800 dark:text-white">PDF</p>
+                                        <p className="text-[10px] text-slate-400">.pdf</p>
+                                    </div>
+                                </button>
+                            </div>
+
+                            {/* Section: Per Tahun */}
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1 pt-2">📅 Tahun {selectedYear}</p>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleDownloadYear}
+                                    className="flex-1 flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                                >
+                                    <div className="w-9 h-9 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <FileSpreadsheet size={16} className="text-white" />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-xs font-bold text-slate-800 dark:text-white">Excel</p>
+                                        <p className="text-[10px] text-slate-400">Sheet per bulan</p>
+                                    </div>
+                                </button>
+                                <button
+                                    onClick={handleDownloadYearPDF}
+                                    className="flex-1 flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+                                >
+                                    <div className="w-9 h-9 bg-amber-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <FileText size={16} className="text-white" />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-xs font-bold text-slate-800 dark:text-white">PDF</p>
+                                        <p className="text-[10px] text-slate-400">Halaman per bulan</p>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="p-3 pt-0">
+                            <p className="text-[10px] text-center text-slate-400">File otomatis terdownload ke perangkat anda</p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
