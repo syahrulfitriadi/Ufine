@@ -195,8 +195,9 @@ const History = () => {
                                                         <th className="pb-3 pt-2 font-semibold px-2">Pemasukan</th>
                                                         <th className="pb-3 pt-2 font-semibold px-2">Pengeluaran</th>
                                                         <th className="pb-3 pt-2 font-semibold px-2">Kategori</th>
+                                                        <th className="pb-3 pt-2 font-semibold px-2">Ket.</th>
                                                         <th className="pb-3 pt-2 font-semibold px-2 text-right">Saldo</th>
-                                                        <th className="pb-3 pt-2 font-semibold px-2 text-right w-10"></th>
+                                                        <th className="pb-3 pt-2 font-semibold px-2 text-right w-16"></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -224,17 +225,24 @@ const History = () => {
                                                                         )}
                                                                     </div>
                                                                 </td>
+                                                                <td className="py-3 px-2 text-slate-500 dark:text-slate-400 align-top min-w-[120px] max-w-[200px]">
+                                                                    <span className="block break-words whitespace-normal">
+                                                                        {t.note || '-'}
+                                                                    </span>
+                                                                </td>
                                                                 <td className={`py-3 px-2 text-right font-bold align-top text-slate-800 whitespace-nowrap`}>
                                                                     {formatCurrency(t.runningBalance)}
                                                                 </td>
                                                                 <td className="py-3 px-2 text-right align-top">
-                                                                    <button
-                                                                        onClick={() => handleDeleteClick(t.id)}
-                                                                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-                                                                        title="Hapus Transaksi"
-                                                                    >
-                                                                        <Trash2 size={16} />
-                                                                    </button>
+                                                                    <div className="flex items-center justify-end gap-1">
+                                                                        <button
+                                                                            onClick={() => handleDeleteClick(t.id)}
+                                                                            className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all"
+                                                                            title="Hapus Transaksi"
+                                                                        >
+                                                                            <Trash2 size={14} />
+                                                                        </button>
+                                                                    </div>
                                                                 </td>
                                                             </tr>
                                                         )

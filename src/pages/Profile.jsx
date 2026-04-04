@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { UserCircle, LogOut, CheckCircle2, ChevronRight, Bell, Moon, Shield, HelpCircle, Settings } from 'lucide-react';
+import { UserCircle, LogOut, CheckCircle2, ChevronRight, Bell, Moon, Shield, HelpCircle, Settings, Camera } from 'lucide-react';
+import { getAvatarUrl, updateAvatarUrl, compressImage } from '../utils/storage';
 import ConfirmModal from '../components/ConfirmModal';
 
 const Profile = ({ session }) => {
@@ -12,6 +13,10 @@ const Profile = ({ session }) => {
     // Settings States
     const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
     const [isNotifEnabled, setIsNotifEnabled] = useState(true);
+    const [avatarUrl, setAvatarUrl] = useState(null);
+    const [avatarLoading, setAvatarLoading] = useState(false);
+    const fileInputRef = useRef(null);
+    const settingsRef = useRef(null);
 
     // Apply dark mode class on mount
     useEffect(() => {
@@ -44,8 +49,39 @@ const Profile = ({ session }) => {
             setEmail(session.user.email);
             setUsername(session.user.user_metadata?.username || '');
             fetchFamilyData(session.user.id);
+            // Fetch avatar
+            getAvatarUrl().then(url => setAvatarUrl(url));
         }
     }, [session]);
+
+    const handleAvatarChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            alert('Pilih file gambar (JPG, PNG, dll.)');
+            return;
+        }
+
+        setAvatarLoading(true);
+        try {
+            const compressed = await compressImage(file);
+            await updateAvatarUrl(compressed);
+            setAvatarUrl(compressed);
+        } catch (error) {
+            console.error('Error uploading avatar:', error);
+            alert('Gagal mengupload foto. Coba lagi.');
+        } finally {
+            setAvatarLoading(false);
+            // Reset input so same file can be selected again
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const scrollToSettings = () => {
+        settingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
 
     const fetchFamilyData = async (userId) => {
         try {
@@ -220,7 +256,7 @@ const Profile = ({ session }) => {
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-28">
             <div className="flex justify-between items-center mb-6 text-white">
                 <h1 className="text-2xl font-bold">Profil</h1>
-                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-md cursor-pointer hover:bg-white/30 transition-colors">
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-md cursor-pointer hover:bg-white/30 transition-colors" onClick={scrollToSettings}>
                     <Settings size={20} />
                 </div>
             </div>
@@ -229,14 +265,40 @@ const Profile = ({ session }) => {
             <div className="glass-card p-6 mb-6 flex flex-col items-center relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-sage-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
 
-                <div className="w-20 h-20 bg-sage-100 rounded-full flex items-center justify-center mb-4 shadow-inner relative text-sage-600 font-bold text-3xl uppercase border-4 border-white">
-                    {username ? username.charAt(0) : <UserCircle size={40} />}
+                <div
+                    className="w-20 h-20 rounded-full flex items-center justify-center mb-4 shadow-inner relative text-sage-600 font-bold text-3xl uppercase border-4 border-white cursor-pointer group overflow-hidden"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Klik untuk ganti foto"
+                >
+                    {avatarUrl ? (
+                        <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full bg-sage-100 flex items-center justify-center">
+                            {username ? username.charAt(0) : <UserCircle size={40} />}
+                        </div>
+                    )}
+                    {/* Camera overlay on hover */}
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                        {avatarLoading ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                            <Camera size={20} className="text-white" />
+                        )}
+                    </div>
                     {isSuccess && (
                         <div className="absolute -bottom-1 -right-1 bg-white rounded-full">
                             <CheckCircle2 className="text-mint-500 w-6 h-6 border-2 border-white rounded-full bg-white relative z-10" />
                         </div>
                     )}
                 </div>
+                {/* Hidden file input */}
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                />
 
                 <div className="w-full text-center mb-6">
                     <h2 className="text-xl font-extrabold text-slate-800">{username || 'Pengguna'}</h2>
@@ -344,7 +406,7 @@ const Profile = ({ session }) => {
             </div>
 
             {/* App Settings Card */}
-            <h3 className="text-sm font-bold text-slate-800 mb-3 px-1">Pengaturan Aplikasi</h3>
+            <h3 ref={settingsRef} className="text-sm font-bold text-slate-800 mb-3 px-1">Pengaturan Aplikasi</h3>
             <div className="glass-card mb-6 overflow-hidden flex flex-col">
                 <div onClick={() => setIsNotifEnabled(!isNotifEnabled)} className="flex items-center justify-between p-4 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors">
                     <div className="flex items-center gap-3">

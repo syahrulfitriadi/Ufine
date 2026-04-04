@@ -118,6 +118,14 @@
 .dark .bg-sage-200, .dark .bg-sage-100 { background-color: rgba(134, 167, 136, 0.2) !important; }
 .dark .bg-rose-200, .dark .bg-rose-50 { background-color: rgba(244, 63, 94, 0.2) !important; }
 
+/* Image Logo overrides */
+.dark .logo-image {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  padding: 0.5rem 1.5rem !important;
+  border-radius: 1.5rem !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+}
+
 /* Top gradient header */
 .dark .from-mint-400 { --tw-gradient-from: #296e52; }
 .dark .to-sage-500 { --tw-gradient-to: #364738; }

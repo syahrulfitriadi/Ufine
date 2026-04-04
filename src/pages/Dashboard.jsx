@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
-import { getTransactions } from '../utils/storage';
+import { getTransactions, getAvatarUrl } from '../utils/storage';
 import { calculateSummary, getChartData, formatCurrency, formatDate } from '../utils/helpers';
 import { isSameMonth, parseISO } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,6 +18,12 @@ const Dashboard = () => {
     const [chartData, setChartData] = useState({ income: [], expense: [] });
     const [activeSlide, setActiveSlide] = useState(0); // 0 = Pemasukan, 1 = Pengeluaran
     const [userFilter, setUserFilter] = useState('me'); // 'all', 'me', 'partner'
+    const [avatarUrl, setAvatarUrl] = useState(null);
+
+    // Fetch avatar on mount
+    useEffect(() => {
+        getAvatarUrl().then(url => setAvatarUrl(url));
+    }, []);
 
     useEffect(() => {
         const filteredData = rawTransactions.filter(t => {
@@ -60,7 +66,8 @@ const Dashboard = () => {
         return 'Selamat Malam';
     };
 
-    const username = session?.user?.user_metadata?.username || session?.user?.email?.split('@')[0] || 'Pengguna';
+    const fullUsername = session?.user?.user_metadata?.username || session?.user?.email?.split('@')[0] || 'Pengguna';
+    const firstName = fullUsername.split(' ')[0];
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -68,11 +75,15 @@ const Dashboard = () => {
             {/* Greeting Header */}
             <div className="mb-6 flex justify-between items-center text-white">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">{getGreeting()}, {username}</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">{getGreeting()}, {firstName}</h1>
                     <p className="text-white/80 text-sm font-medium mt-1">Siap mencatat keuanganmu hari ini?</p>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-bold text-xl shadow-sm border border-white/30 uppercase">
-                    {username.charAt(0)}
+                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-bold text-xl shadow-sm border border-white/30 uppercase overflow-hidden">
+                    {avatarUrl ? (
+                        <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                        firstName.charAt(0)
+                    )}
                 </div>
             </div>
 

@@ -74,6 +74,17 @@ export const TransactionProvider = ({ children }) => {
                     addToast(`Pasangan menghapus sebuah transaksi.`, 'warning');
                 }
             })
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'transactions'
+            }, (payload) => {
+                const updatedTx = payload.new;
+                if (updatedTx.user_id !== session.user.id) {
+                    fetchTransactions();
+                    addToast(`Pasangan mengedit sebuah transaksi.`, 'info');
+                }
+            })
             .subscribe();
 
         return () => {

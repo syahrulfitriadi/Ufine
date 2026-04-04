@@ -76,7 +76,7 @@ const Login = () => {
                     <img
                         src="/logo-ufine-v2.png"
                         alt="UFine Logo"
-                        className="w-48 h-auto mb-2 object-contain drop-shadow-lg"
+                        className="w-48 h-auto mb-2 object-contain drop-shadow-lg logo-image"
                     />
                     <p className="text-slate-500 text-sm mt-1 text-center">Catat & sinkronisasi keuangan Anda dari mana saja.</p>
                 </div>

@@ -116,3 +116,107 @@ export const deleteTransaction = async (id) => {
     }
     return true;
 };
+
+// Update transaction (only own transactions via RLS)
+export const updateTransaction = async (id, updates) => {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('Not authenticated');
+
+    const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .update({
+            type: updates.type,
+            amount: updates.amount,
+            category: updates.category,
+            date: updates.date,
+            note: updates.note,
+        })
+        .eq('id', id)
+        .eq('user_id', userId) // extra safety: only own transactions
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error updating transaction:', error);
+        throw error;
+    }
+    return data;
+};
+
+// Get avatar URL from profiles
+export const getAvatarUrl = async () => {
+    const userId = await getCurrentUserId();
+    if (!userId) return null;
+
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('avatar_url')
+        .eq('id', userId)
+        .single();
+
+    if (error) {
+        console.error('Error fetching avatar:', error);
+        return null;
+    }
+    return data?.avatar_url || null;
+};
+
+// Update avatar URL in profiles (base64 string)
+export const updateAvatarUrl = async (base64String) => {
+    const userId = await getCurrentUserId();
+    if (!userId) throw new Error('Not authenticated');
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: base64String })
+        .eq('id', userId);
+
+    if (error) {
+        console.error('Error updating avatar:', error);
+        throw error;
+    }
+    return true;
+};
+
+// Compress image client-side: resize to max 200x200, JPEG 60% quality
+export const compressImage = (file) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_SIZE = 200;
+                let width = img.width;
+                let height = img.height;
+
+                // Scale down proportionally
+                if (width > height) {
+                    if (width > MAX_SIZE) {
+                        height = Math.round((height * MAX_SIZE) / width);
+                        width = MAX_SIZE;
+                    }
+                } else {
+                    if (height > MAX_SIZE) {
+                        width = Math.round((width * MAX_SIZE) / height);
+                        height = MAX_SIZE;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Convert to JPEG at 60% quality
+                const base64 = canvas.toDataURL('image/jpeg', 0.6);
+                resolve(base64);
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
+

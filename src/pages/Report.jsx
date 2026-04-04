@@ -2,13 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { isSameWeek, isSameMonth, parseISO, format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { BarChart, Wallet, ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, FileDown, FileSpreadsheet } from 'lucide-react';
+import { BarChart, Wallet, ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, FileDown, FileSpreadsheet, Pencil } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../contexts/AuthContext';
 import { useTransactions } from '../contexts/TransactionContext';
 import { ReportSkeleton } from '../components/SkeletonLoader';
+import EditTransactionModal from '../components/EditTransactionModal';
 
 const Report = () => {
     const { session } = useAuth();
@@ -17,6 +18,15 @@ const Report = () => {
     const [userFilter, setUserFilter] = useState('me'); // 'all', 'me', 'partner'
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
+
+    // Edit modal state
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingTransaction, setEditingTransaction] = useState(null);
+
+    const handleEditClick = (transaction) => {
+        setEditingTransaction(transaction);
+        setShowEditModal(true);
+    };
 
     // Reset pagination when period changes
     useEffect(() => {
@@ -101,7 +111,7 @@ const Report = () => {
         doc.text(`Total Pengeluaran: ${formatCurrency(totalExpense)}`, 14, 35);
         doc.text(`Sisa Saldo: ${formatCurrency(balance)}`, 14, 40);
 
-        const tableColumn = ["No", "Tanggal", "Oleh", "Kategori", "Pemasukan", "Pengeluaran", "Saldo"];
+        const tableColumn = ["No", "Tanggal", "Oleh", "Kategori", "Keterangan", "Pemasukan", "Pengeluaran", "Saldo"];
         const tableRows = [];
 
         // Reverse back to oldest first for report flow (chronological order)
@@ -113,6 +123,7 @@ const Report = () => {
                 formatDate(t.date, 'dd/MM/yyyy'),
                 t.creator_name || '-',
                 t.category,
+                t.note || '-',
                 t.type === 'income' ? formatCurrency(t.amount) : '-',
                 t.type === 'expense' ? formatCurrency(t.amount) : '-',
                 formatCurrency(t.runningBalance)
@@ -140,6 +151,7 @@ const Report = () => {
             Tanggal: formatDate(t.date, 'dd/MM/yyyy'),
             Oleh: t.creator_name || '-',
             Kategori: t.category,
+            Keterangan: t.note || '-',
             Jenis: t.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
             Nominal: Number(t.amount),
             Saldo: t.runningBalance
@@ -150,6 +162,7 @@ const Report = () => {
             No: '',
             Tanggal: '',
             Kategori: 'TOTAL',
+            Keterangan: '',
             Jenis: '',
             Nominal: `Masuk: ${totalIncome} | Keluar: ${totalExpense}`,
             Saldo: balance
@@ -162,7 +175,7 @@ const Report = () => {
 
         // Adjust column widths
         const wscols = [
-            { wch: 5 }, { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 25 }, { wch: 20 }
+            { wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 20 }, { wch: 20 }
         ];
         worksheet['!cols'] = wscols;
 
@@ -275,7 +288,9 @@ const Report = () => {
                                                 <th className="pb-3 pt-2 font-semibold px-2">Pemasukan</th>
                                                 <th className="pb-3 pt-2 font-semibold px-2">Pengeluaran</th>
                                                 <th className="pb-3 pt-2 font-semibold px-2">Kategori</th>
+                                                <th className="pb-3 pt-2 font-semibold px-2">Ket.</th>
                                                 <th className="pb-3 pt-2 font-semibold px-2 text-right">Saldo</th>
+                                                <th className="pb-3 pt-2 font-semibold px-2 text-right w-10"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -284,7 +299,7 @@ const Report = () => {
                                                 const overallIndex = (currentPage - 1) * itemsPerPage + index + 1;
 
                                                 return (
-                                                    <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                                                    <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
                                                         <td className="py-3 px-2 text-slate-400 font-medium align-top">{overallIndex}</td>
                                                         <td className="py-3 px-2 text-slate-600 align-top whitespace-nowrap">
                                                             {formatDate(t.date, 'dd/MM')}
@@ -305,8 +320,24 @@ const Report = () => {
                                                                 )}
                                                             </div>
                                                         </td>
+                                                        <td className="py-3 px-2 text-slate-500 dark:text-slate-400 align-top min-w-[120px] max-w-[200px]">
+                                                            <span className="block break-words whitespace-normal">
+                                                                {t.note || '-'}
+                                                            </span>
+                                                        </td>
                                                         <td className={`py-3 text-right font-bold align-top text-slate-800 whitespace-nowrap`}>
                                                             {formatCurrency(t.runningBalance)}
+                                                        </td>
+                                                        <td className="py-3 px-2 text-right align-top">
+                                                            {t.user_id === session?.user?.id && (
+                                                                <button
+                                                                    onClick={() => handleEditClick(t)}
+                                                                    className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"
+                                                                    title="Edit Transaksi"
+                                                                >
+                                                                    <Pencil size={14} />
+                                                                </button>
+                                                            )}
                                                         </td>
                                                     </tr>
                                                 );
@@ -358,6 +389,12 @@ const Report = () => {
                 )}
 
             </div>
+
+            <EditTransactionModal
+                isOpen={showEditModal}
+                onClose={() => { setShowEditModal(false); setEditingTransaction(null); }}
+                transaction={editingTransaction}
+            />
         </div>
     );
 };
