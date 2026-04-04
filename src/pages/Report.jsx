@@ -279,7 +279,6 @@ const Report = () => {
 
                         <div className="flex-1 overflow-x-auto pb-6">
                             {targetTransactions.length > 0 ? (
-                                <>
                                     <table className="w-full text-left text-sm border-collapse min-w-[550px]">
                                         <thead>
                                             <tr className="border-b-2 border-sage-100 text-slate-500">
@@ -344,47 +343,46 @@ const Report = () => {
                                             })}
                                         </tbody>
                                     </table>
-
-                                    {/* Pagination Controls */}
-                                    {totalPages > 1 && (
-                                        <div className="flex justify-center items-center space-x-2 mt-6">
-                                            <button
-                                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                                disabled={currentPage === 1}
-                                                className="p-1 rounded bg-slate-100 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 transition-colors"
-                                            >
-                                                <ChevronLeft size={20} />
-                                            </button>
-
-                                            {Array.from({ length: totalPages }).map((_, idx) => (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => setCurrentPage(idx + 1)}
-                                                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-semibold transition-all ${currentPage === idx + 1
-                                                        ? 'bg-sage-500 text-white shadow-md'
-                                                        : 'bg-white text-slate-500 hover:bg-sage-50 border border-slate-200'
-                                                        }`}
-                                                >
-                                                    {idx + 1}
-                                                </button>
-                                            ))}
-
-                                            <button
-                                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                                disabled={currentPage === totalPages}
-                                                className="p-1 rounded bg-slate-100 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 transition-colors"
-                                            >
-                                                <ChevronRight size={20} />
-                                            </button>
-                                        </div>
-                                    )}
-                                </>
                             ) : (
                                 <div className="text-center p-8 text-slate-400 text-sm bg-slate-50 rounded-2xl border border-slate-100 border-dashed">
                                     Tidak ada transaksi pada periode ini.
                                 </div>
                             )}
                         </div>
+
+                        {/* Pagination Controls - OUTSIDE overflow container */}
+                        {targetTransactions.length > 0 && totalPages > 1 && (
+                            <div className="flex justify-center items-center space-x-2 mt-2 mb-4">
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="p-1 rounded bg-slate-100 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 transition-colors"
+                                >
+                                    <ChevronLeft size={20} />
+                                </button>
+
+                                {Array.from({ length: totalPages }).map((_, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => setCurrentPage(idx + 1)}
+                                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-semibold transition-all ${currentPage === idx + 1
+                                            ? 'bg-sage-500 text-white shadow-md'
+                                            : 'bg-white text-slate-500 hover:bg-sage-50 border border-slate-200'
+                                            }`}
+                                    >
+                                        {idx + 1}
+                                    </button>
+                                ))}
+
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="p-1 rounded bg-slate-100 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 transition-colors"
+                                >
+                                    <ChevronRight size={20} />
+                                </button>
+                            </div>
+                        )}
                     </>
                 )}
 
