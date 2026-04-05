@@ -388,18 +388,18 @@ const History = () => {
                                     {/* Monthly Summary & Category Breakdown */}
                                     <div className="mb-6 rounded-2xl overflow-hidden">
                                         {/* Summary Row */}
-                                        <div className="flex items-stretch gap-2 mb-5">
-                                            <div className="flex-1 bg-sage-50 dark:bg-sage-900/20 rounded-xl p-3 border border-sage-100 dark:border-sage-800/30">
-                                                <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Masuk</p>
-                                                <p className="text-xs font-bold text-sage-600 dark:text-sage-400 mt-1 truncate">{formatCurrency(monthIncome)}</p>
+                                        <div className="flex items-stretch gap-1.5 sm:gap-2 mb-5">
+                                            <div className="flex-1 min-w-0 bg-sage-50 dark:bg-sage-900/20 rounded-xl p-2 sm:p-3 border border-sage-100 dark:border-sage-800/30">
+                                                <p className="text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider" style={{ fontSize: 'clamp(7px, 2vw, 10px)' }}>Masuk</p>
+                                                <p className="font-bold text-sage-600 dark:text-sage-400 mt-1 leading-tight" style={{ fontSize: 'clamp(10px, 2.8vw, 14px)' }}>{formatCurrency(monthIncome)}</p>
                                             </div>
-                                            <div className="flex-1 bg-rose-50 dark:bg-rose-900/20 rounded-xl p-3 border border-rose-100 dark:border-rose-800/30">
-                                                <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Keluar</p>
-                                                <p className="text-xs font-bold text-rose-500 dark:text-rose-400 mt-1 truncate">{formatCurrency(monthExpense)}</p>
+                                            <div className="flex-1 min-w-0 bg-rose-50 dark:bg-rose-900/20 rounded-xl p-2 sm:p-3 border border-rose-100 dark:border-rose-800/30">
+                                                <p className="text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider" style={{ fontSize: 'clamp(7px, 2vw, 10px)' }}>Keluar</p>
+                                                <p className="font-bold text-rose-500 dark:text-rose-400 mt-1 leading-tight" style={{ fontSize: 'clamp(10px, 2.8vw, 14px)' }}>{formatCurrency(monthExpense)}</p>
                                             </div>
-                                            <div className="flex-1 bg-slate-800 dark:bg-slate-700 rounded-xl p-3">
-                                                <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider">Saldo</p>
-                                                <p className="text-xs font-bold text-white mt-1 truncate">{formatCurrency(monthIncome - monthExpense)}</p>
+                                            <div className="flex-1 min-w-0 bg-slate-800 dark:bg-slate-700 rounded-xl p-2 sm:p-3">
+                                                <p className="text-slate-400 font-semibold uppercase tracking-wider" style={{ fontSize: 'clamp(7px, 2vw, 10px)' }}>Saldo</p>
+                                                <p className="font-bold text-white mt-1 leading-tight" style={{ fontSize: 'clamp(10px, 2.8vw, 14px)' }}>{formatCurrency(monthIncome - monthExpense)}</p>
                                             </div>
                                         </div>
 
@@ -572,8 +572,8 @@ const History = () => {
 
             {/* Download Modal */}
             {showDownloadModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4" onClick={() => setShowDownloadModal(false)}>
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowDownloadModal(false)}>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
                             <h3 className="text-lg font-bold text-slate-800 dark:text-white">Download Riwayat</h3>
                             <button onClick={() => setShowDownloadModal(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
