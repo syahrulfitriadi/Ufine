@@ -2,11 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/logo-ufine-tab.png" />
-    <link rel="apple-touch-icon" href="/logo-ufine-v2.png" />
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#1e293b" />
+    <meta name="theme-color" content="#86a788" id="theme-color-meta" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="description" content="Catat & sinkronisasi keuangan Anda dari mana saja." />
@@ -15,8 +15,10 @@
   <body>
     <script>
       // Apply dark mode before React renders to prevent flash
-      if (localStorage.getItem('darkMode') === 'true') {
+      var isDark = localStorage.getItem('darkMode') === 'true';
+      if (isDark) {
         document.documentElement.classList.add('dark');
+        document.getElementById('theme-color-meta').setAttribute('content', '#1e293b');
       }
     </script>
     <div id="root"></div>

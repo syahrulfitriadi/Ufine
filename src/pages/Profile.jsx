@@ -36,6 +36,9 @@ const Profile = ({ session }) => {
         } else {
             document.documentElement.classList.remove('dark');
         }
+        // Update status bar color to match theme
+        const meta = document.getElementById('theme-color-meta');
+        if (meta) meta.setAttribute('content', newMode ? '#1e293b' : '#86a788');
     };
 
     const [familyInfo, setFamilyInfo] = useState(null);
