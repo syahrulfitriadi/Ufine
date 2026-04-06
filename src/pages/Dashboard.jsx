@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Wallet, Users, User, UserCheck } from 'lucide-react';
 import { getTransactions, getAvatarUrl } from '../utils/storage';
 import { calculateSummary, getChartData, formatCurrency, formatDate } from '../utils/helpers';
 import { isSameMonth, parseISO } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { useTransactions } from '../contexts/TransactionContext';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
+import IconSelect from '../components/IconSelect';
 
 const COLORS = ['#86a788', '#f43f5e', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981', '#ec4899', '#6366f1', '#64748b'];
 
@@ -88,16 +89,17 @@ const Dashboard = () => {
             </div>
 
             {/* Total Saldo Card */}
-            <div className="flex justify-between items-center mb-4">
-                <select
+            <div className="mb-4">
+                <IconSelect
                     value={userFilter}
-                    onChange={(e) => setUserFilter(e.target.value)}
-                    className="p-2 bg-white/50 backdrop-blur-md rounded-xl text-xs font-bold text-slate-700 outline-none border border-slate-100 shadow-sm"
-                >
-                    <option value="all">Data Keluarga (Semua)</option>
-                    <option value="me">Data Saya</option>
-                    <option value="partner">Data Pasangan</option>
-                </select>
+                    onChange={setUserFilter}
+                    className="w-44"
+                    options={[
+                        { value: 'all', label: 'Semua Data', icon: Users },
+                        { value: 'me', label: 'Data Saya', icon: User },
+                        { value: 'partner', label: 'Data Pasangan', icon: UserCheck },
+                    ]}
+                />
             </div>
 
             <div className="glass-card mb-6 p-5 flex justify-between items-center bg-gradient-to-br from-slate-800 to-slate-900 border-none shadow-xl shadow-slate-900/20 text-white rounded-[2rem]">

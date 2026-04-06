@@ -2,7 +2,21 @@ import React, { useState } from 'react';
 import { addTransaction } from '../utils/storage';
 import { useTransactions } from '../contexts/TransactionContext';
 import { format } from 'date-fns';
-import { ArrowDownRight, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, CheckCircle2, UtensilsCrossed, Car, ShoppingBag, Gamepad2, Receipt, MoreHorizontal, Banknote, Laptop, TrendingUp, Gift } from 'lucide-react';
+
+// Category icon mapping
+export const CATEGORY_ICONS = {
+    'Makan': UtensilsCrossed,
+    'Transportasi': Car,
+    'Belanja': ShoppingBag,
+    'Hobi': Gamepad2,
+    'Tagihan': Receipt,
+    'Gaji': Banknote,
+    'Freelance': Laptop,
+    'Investasi': TrendingUp,
+    'Bonus': Gift,
+    'Lainnya': MoreHorizontal,
+};
 
 const CATEGORIES = {
     expense: ['Makan', 'Transportasi', 'Belanja', 'Hobi', 'Tagihan', 'Lainnya'],
@@ -183,20 +197,32 @@ const AddTransaction = ({ onSuccess }) => {
                         <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                             Kategori
                         </label>
-                        <div className="flex flex-wrap gap-2">
-                            {currentCategories.map(cat => (
-                                <button
-                                    key={cat}
-                                    type="button"
-                                    onClick={() => setCategory(cat)}
-                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${category === cat
-                                        ? (type === 'income' ? 'bg-sage-500 text-white' : 'bg-rose-500 text-white')
-                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                        }`}
-                                >
-                                    {cat}
-                                </button>
-                            ))}
+                        <div className="grid grid-cols-3 gap-3">
+                            {currentCategories.map(cat => {
+                                const CatIcon = CATEGORY_ICONS[cat] || MoreHorizontal;
+                                const isSelected = category === cat;
+                                return (
+                                    <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={() => setCategory(cat)}
+                                        className={`flex flex-col items-center gap-2 py-3 px-2 rounded-2xl text-xs font-semibold transition-all duration-200 ${isSelected
+                                            ? (type === 'income'
+                                                ? 'bg-sage-50 dark:bg-sage-900/30 text-sage-700 dark:text-sage-300 ring-2 ring-sage-400 shadow-sm'
+                                                : 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300 ring-2 ring-rose-400 shadow-sm')
+                                            : 'bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                            }`}
+                                    >
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isSelected
+                                            ? (type === 'income' ? 'bg-sage-500 text-white' : 'bg-rose-500 text-white')
+                                            : 'bg-slate-200/70 dark:bg-slate-600 text-slate-400 dark:text-slate-300'
+                                            }`}>
+                                            <CatIcon size={20} />
+                                        </div>
+                                        <span>{cat}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                         {/* Custom Category input if Lainnya is selected */}
                         {category === 'Lainnya' && (
