@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { isSameWeek, isSameMonth, parseISO, format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { BarChart, Wallet, ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, FileDown, FileSpreadsheet, Pencil } from 'lucide-react';
+import { BarChart, Wallet, ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, FileDown, FileSpreadsheet, Pencil, Users, User, UserCheck } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTransactions } from '../contexts/TransactionContext';
 import { ReportSkeleton } from '../components/SkeletonLoader';
 import EditTransactionModal from '../components/EditTransactionModal';
+import IconSelect from '../components/IconSelect';
 
 const Report = () => {
     const { session } = useAuth();
@@ -230,15 +231,15 @@ const Report = () => {
                         </button>
                     </div>
 
-                    <select
+                    <IconSelect
                         value={userFilter}
-                        onChange={(e) => setUserFilter(e.target.value)}
-                        className="p-1.5 px-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 outline-none focus:border-sage-400"
-                    >
-                        <option value="all">💳 Semua Data</option>
-                        <option value="me">👤 Data Saya</option>
-                        <option value="partner">👥 Data Pasangan</option>
-                    </select>
+                        onChange={setUserFilter}
+                        options={[
+                            { value: 'all', label: 'Semua Data', icon: Users },
+                            { value: 'me', label: 'Data Saya', icon: User },
+                            { value: 'partner', label: 'Data Pasangan', icon: UserCheck },
+                        ]}
+                    />
                 </div>
 
                 {isLoading ? (

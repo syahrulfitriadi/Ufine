@@ -6,11 +6,12 @@ import { id } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { CalendarDays, Download, Trash2, ArrowDownRight, ArrowUpRight, List, ChevronLeft, ChevronRight, X, FileSpreadsheet, FileText, Calendar } from 'lucide-react';
+import { CalendarDays, Download, Trash2, ArrowDownLeft, ArrowUpRight, ListFilter, ChevronLeft, ChevronRight, X, FileSpreadsheet, FileText, Calendar, Users, User, UserCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTransactions } from '../contexts/TransactionContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { HistorySkeleton } from '../components/SkeletonLoader';
+import IconSelect from '../components/IconSelect';
 
 const History = () => {
     const { session } = useAuth();
@@ -299,51 +300,50 @@ const History = () => {
             <div className="glass-card min-h-[60vh] overflow-hidden flex flex-col">
 
                 {/* Filters */}
-                <div className="flex flex-col gap-2 border-b border-slate-100 p-2 bg-slate-50/30">
+                <div className="flex flex-col gap-2 border-b border-slate-100 dark:border-slate-700 p-2 bg-slate-50/30 dark:bg-slate-800/30">
                     <div className="flex gap-2">
-                        <select
+                        <IconSelect
                             value={filterType}
-                            onChange={(e) => setFilterType(e.target.value)}
-                            className="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 outline-none focus:border-sage-400"
-                        >
-                            <option value="all">📝 Semua Tipe</option>
-                            <option value="income">↘️ Pemasukan</option>
-                            <option value="expense">↗️ Pengeluaran</option>
-                        </select>
-
-                        <select
+                            onChange={setFilterType}
+                            className="flex-1"
+                            options={[
+                                { value: 'all', label: 'Semua Tipe', icon: ListFilter },
+                                { value: 'income', label: 'Pemasukan', icon: ArrowDownLeft },
+                                { value: 'expense', label: 'Pengeluaran', icon: ArrowUpRight },
+                            ]}
+                        />
+                        <IconSelect
                             value={userFilter}
-                            onChange={(e) => setUserFilter(e.target.value)}
-                            className="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 outline-none focus:border-sage-400"
-                        >
-                            <option value="all">💳 Semua Data</option>
-                            <option value="me">👤 Data Saya</option>
-                            <option value="partner">👥 Data Pasangan</option>
-                        </select>
+                            onChange={setUserFilter}
+                            className="flex-1"
+                            options={[
+                                { value: 'all', label: 'Semua Data', icon: Users },
+                                { value: 'me', label: 'Data Saya', icon: User },
+                                { value: 'partner', label: 'Data Pasangan', icon: UserCheck },
+                            ]}
+                        />
                     </div>
                     <div className="flex gap-2">
-                        <select
+                        <IconSelect
                             value={selectedYear}
-                            onChange={(e) => setSelectedYear(Number(e.target.value))}
-                            className="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 outline-none focus:border-sage-400"
-                        >
-                            {availableYears.length > 0 ? availableYears.map(y => (
-                                <option key={y} value={y}>📅 {y}</option>
-                            )) : (
-                                <option value={now.getFullYear()}>📅 {now.getFullYear()}</option>
-                            )}
-                        </select>
-                        <select
+                            onChange={(v) => setSelectedYear(Number(v))}
+                            className="flex-1"
+                            options={(
+                                availableYears.length > 0
+                                    ? availableYears
+                                    : [now.getFullYear()]
+                            ).map(y => ({ value: y, label: String(y), icon: CalendarDays }))}
+                        />
+                        <IconSelect
                             value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                            className="flex-1 py-2 px-3 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-600 outline-none focus:border-sage-400"
-                        >
-                            {availableMonths.length > 0 ? availableMonths.map(m => (
-                                <option key={m} value={m}>📆 {MONTH_NAMES[m]}</option>
-                            )) : (
-                                <option value={now.getMonth()}>📆 {MONTH_NAMES[now.getMonth()]}</option>
-                            )}
-                        </select>
+                            onChange={(v) => setSelectedMonth(Number(v))}
+                            className="flex-1"
+                            options={(
+                                availableMonths.length > 0
+                                    ? availableMonths
+                                    : [now.getMonth()]
+                            ).map(m => ({ value: m, label: MONTH_NAMES[m], icon: Calendar }))}
+                        />
                     </div>
                 </div>
 
