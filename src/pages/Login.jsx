@@ -72,13 +72,18 @@ const Login = () => {
             <div className="absolute bottom-[-100px] right-[-100px] w-96 h-96 bg-sage-400/30 rounded-full blur-3xl"></div>
 
             <div className="relative z-10 w-full max-w-sm mx-auto">
-                <div className="flex flex-col items-center mb-4">
-                    <img
-                        src="/logo-ufine-v2.png"
-                        alt="UFine Logo"
-                        className="w-48 h-auto mb-2 object-contain drop-shadow-lg logo-image"
-                    />
-                    <p className="text-slate-500 text-sm mt-1 text-center">Catat & sinkronisasi keuangan Anda dari mana saja.</p>
+                <div className="flex flex-col items-center mb-6">
+                    <div className="flex items-center gap-4 mb-2">
+                        <img src="/icon-512.png" alt="UFine" className="w-16 h-16 object-contain"
+                            style={{ filter: 'drop-shadow(0 4px 12px rgba(134,167,136,0.25))' }} />
+                        <div>
+                            <h1 className="text-[2rem] font-extrabold tracking-tight leading-none">
+                                <span className="text-slate-800 dark:text-white">U</span><span className="text-sage-600 dark:text-sage-400">fine</span>
+                            </h1>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 tracking-[0.18em] uppercase mt-0.5">Your Finance · Simplified</p>
+                        </div>
+                    </div>
+                    <p className="text-slate-500 text-[13px] text-center mt-1">Catat & sinkronisasi keuangan Anda dari mana saja.</p>
                 </div>
 
                 <div className="glass-card p-6">

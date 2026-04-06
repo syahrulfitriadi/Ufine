@@ -41,30 +41,27 @@ const History = () => {
         setPendingDeleteId(null);
     };
 
-    // Compute global running balances on ALL transactions
-    const allSorted = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
-    let globalBalance = 0;
-    const allWithBalance = allSorted.map(t => {
-        globalBalance += t.type === 'income' ? Number(t.amount) : -Number(t.amount);
-        return { ...t, runningBalance: globalBalance };
-    });
-
-    // Re-sort to newest first for UI
-    const allNewestFirst = [...allWithBalance].reverse();
-
-    const filteredTransactions = allNewestFirst.filter(t => {
-        // Pre-filter Type
+    // First filter by user and type
+    const preFiltered = transactions.filter(t => {
         if (filterType !== 'all' && t.type !== filterType) return false;
-
-        // Filter By User Authority (Family logic)
         if (userFilter === 'me') {
             if (t.user_id !== session?.user?.id) return false;
         } else if (userFilter === 'partner') {
             if (t.user_id === session?.user?.id) return false;
         }
-
         return true;
     });
+
+    // Compute running balance on filtered data (oldest first)
+    const filteredSorted = [...preFiltered].sort((a, b) => new Date(a.date) - new Date(b.date));
+    let runBal = 0;
+    const filteredWithBalance = filteredSorted.map(t => {
+        runBal += t.type === 'income' ? Number(t.amount) : -Number(t.amount);
+        return { ...t, runningBalance: runBal };
+    });
+
+    // Re-sort to newest first for UI
+    const filteredTransactions = [...filteredWithBalance].reverse();
 
     // Group by month
     const groupedTransactions = filteredTransactions.reduce((acc, obj) => {

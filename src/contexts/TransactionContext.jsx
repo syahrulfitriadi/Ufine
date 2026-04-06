@@ -48,47 +48,45 @@ export const TransactionProvider = ({ children }) => {
     useEffect(() => {
         if (!session) return;
 
+        // Use unique channel name to force re-subscribe on session changes
+        const channelName = `realtime-tx-${session.user.id}-${Date.now()}`;
         const channel = supabase
-            .channel('realtime-transactions')
+            .channel(channelName)
             .on('postgres_changes', {
-                event: 'INSERT',
+                event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
                 schema: 'public',
                 table: 'transactions'
             }, (payload) => {
-                const newTx = payload.new;
-                // Only show notification for transactions by OTHER users
-                if (newTx.user_id !== session.user.id) {
-                    // Refresh data to get the new transaction
-                    fetchTransactions();
-                    addToast(`Pasangan menambahkan transaksi baru.`, 'info');
-                }
-            })
-            .on('postgres_changes', {
-                event: 'DELETE',
-                schema: 'public',
-                table: 'transactions'
-            }, (payload) => {
-                const oldTx = payload.old;
-                if (oldTx.user_id !== session.user.id) {
-                    fetchTransactions();
-                    addToast(`Pasangan menghapus sebuah transaksi.`, 'warning');
-                }
-            })
-            .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'transactions'
-            }, (payload) => {
-                const updatedTx = payload.new;
-                if (updatedTx.user_id !== session.user.id) {
-                    fetchTransactions();
-                    addToast(`Pasangan mengedit sebuah transaksi.`, 'info');
+                const relevantTx = payload.new || payload.old;
+                const isOwnTransaction = relevantTx?.user_id === session.user.id;
+                
+                // Always refresh data to stay in sync
+                fetchTransactions();
+                
+                // Show notification only for partner's actions
+                if (!isOwnTransaction) {
+                    const messages = {
+                        INSERT: 'Pasangan menambahkan transaksi baru.',
+                        UPDATE: 'Pasangan mengedit sebuah transaksi.',
+                        DELETE: 'Pasangan menghapus sebuah transaksi.'
+                    };
+                    const types = { INSERT: 'info', UPDATE: 'info', DELETE: 'warning' };
+                    addToast(messages[payload.eventType] || 'Data diperbarui.', types[payload.eventType] || 'info');
                 }
             })
             .subscribe();
 
+        // Refetch when app regains focus (handles PWA background resume)
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                fetchTransactions();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+
         return () => {
             supabase.removeChannel(channel);
+            document.removeEventListener('visibilitychange', handleVisibility);
         };
     }, [session, fetchTransactions, addToast]);
 
