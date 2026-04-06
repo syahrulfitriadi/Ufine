@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import BottomNav from './components/BottomNav';
 import Dashboard from './pages/Dashboard';
 import AddTransaction from './pages/AddTransaction';
@@ -6,23 +6,15 @@ import History from './pages/History';
 import Report from './pages/Report';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
-import SplashScreen from './components/SplashScreen';
 import { useAuth } from './contexts/AuthContext';
 import { useTransactions } from './contexts/TransactionContext';
 import { ToastContainer } from './components/Toast';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [showSplash, setShowSplash] = useState(true);
   const { session } = useAuth();
   const { toasts, removeToast } = useTransactions();
 
-  const handleSplashFinish = useCallback(() => setShowSplash(false), []);
-
-  // Show animated splash screen on app load
-  if (showSplash) {
-    return <SplashScreen onFinish={handleSplashFinish} />;
-  }
 
   // If no session exists, show Login page
   if (!session) {
