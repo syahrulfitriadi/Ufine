@@ -339,19 +339,19 @@ const Profile = ({ session }) => {
                         <div className="w-12 h-12 bg-mint-50 text-mint-500 rounded-full flex items-center justify-center mb-3">
                             <UserCircle size={24} />
                         </div>
-                        <h4 className="font-bold text-slate-800 mb-1">{familyInfo.name}</h4>
-                        <p className="text-xs text-slate-500 mb-4">Anda tergabung dalam grup keluarga ini.</p>
-                        <div className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl flex justify-between items-center">
-                            <span className="text-xs font-semibold text-slate-500">Kode Undangan:</span>
-                            <span className="text-sm font-bold tracking-widest text-sage-600">{familyInfo.join_code}</span>
+                        <h4 className="font-bold text-slate-800 dark:text-slate-100 mb-1">{familyInfo.name}</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Anda tergabung dalam grup keluarga ini.</p>
+                        <div className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600 p-3 rounded-xl flex justify-between items-center">
+                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Kode Undangan:</span>
+                            <span className="text-sm font-bold tracking-widest text-sage-600 dark:text-sage-400">{familyInfo.join_code}</span>
                         </div>
-                        <p className="text-[10px] text-slate-400 mt-2 text-left w-full leading-tight">
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 text-left w-full leading-tight">
                             *Berikan kode ini kepada pasangan/keluarga Anda agar mereka dapat memantau dan mengisi arus kas yang sama.
                         </p>
                         <button
                             onClick={() => setShowLeaveConfirm(true)}
                             disabled={familyLoading}
-                            className="mt-4 w-full py-2.5 text-sm font-semibold text-rose-500 border border-rose-200 bg-rose-50/50 rounded-xl hover:bg-rose-100 transition-colors disabled:opacity-50"
+                            className="mt-4 w-full py-2.5 text-sm font-semibold text-rose-500 dark:text-rose-400 border border-rose-200 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-900/20 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors disabled:opacity-50"
                         >
                             Keluar dari Grup
                         </button>
